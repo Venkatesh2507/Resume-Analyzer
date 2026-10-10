@@ -1,0 +1,254 @@
+{
+  "name": "Resume Analyzer Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resume-upload",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -16,
+        -32
+      ],
+      "id": "64a443d7-7525-468f-abcd-972b8dea7995",
+      "name": "Webhook",
+      "webhookId": "e9ee0737-6609-4e9b-9faf-2843acb0ed0c"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# Resume Optimization Prompt (Single-Page, ATS-Friendly Version)\n\n```\nYou are an expert resume optimization assistant.\n\nYou will receive:\n1) Resume content (raw extracted text)\n2) A Job Description (JD)\n\nYour task is to:\n- Analyze the resume against the JD\n- Optimize and rewrite each section to better match the job\n- Add relevant keywords from the JD naturally\n- Improve clarity, impact, and ATS-friendliness\n- DO NOT add false information\n- Keep content concise, professional, and STRICTLY sized to fit ONE A4 PAGE when rendered\n\n===========================================================\nSINGLE-PAGE & DESIGN CONSTRAINTS (VERY IMPORTANT)\n===========================================================\nThe final resume is rendered on ONE A4 page at 10.5pt Calibri/Arial, line-height 1.25,\nwith ~12mm margins. At this size roughly 55-60 lines of text fit on the page.\nThe name and contact line take 2 lines and section headings take about 6 lines,\nleaving a budget of ~45 lines of content. Stay at or under 42 lines to be safe.\nEach bullet must be ONE line only (max 18 words, ~110 characters).\n\nHARD TOTAL LINE BUDGET: the ENTIRE resume content (excluding name/contact block\nand section headings) MUST NOT exceed ~26 lines of visible text. Count every\nbullet, every paragraph line, and every education/skills line toward this budget.\nAllocate the budget like this:\n- about_me: max 2–3 lines, 1 short paragraph only\n- education: max 2 entries, 1 line each = 2 lines total\n- skills: max 4–5 categories, ONE line each (max 6 items per category,\n  comma-separated) = 4–5 lines total\n- experience: max 3 roles; 2-3 bullets per role (most recent role may have 3,\n   older roles 2). One line per bullet.\n- projects: max 2 projects; exactly 2 bullets each.\n- achievements: max 3 items, one line each.\n\nIf the raw resume content is longer than this budget (e.g. a role has 3 bullets\nin the source but they can be merged into 2 without losing meaning), MERGE\noverlapping bullets into a single stronger bullet rather than listing both.\nPRIORITIZE the most JD-relevant and most recent/impactful items first, and\ncompress or drop the rest. NEVER sacrifice ATS-readability or truthfulness to\nsave space — only trim length and merge redundant points.\n\n===========================================================\nHTML MINIMALISM RULES (FIXES \"BIG GAPS BETWEEN SECTIONS\")\n===========================================================\nExtra whitespace/line-height in the rendered PDF is usually caused by stray or\nredundant tags, not by content length. Follow these strictly:\n- Do NOT insert <br> immediately before or after a <div class=\"item\">, <ul>,\n  <li>, or <p> — spacing between blocks is handled by the template's CSS, not\n  by manual <br> tags\n- Do NOT use <br><br> (double breaks) anywhere\n- Do NOT add empty <p></p>, empty <li></li>, or empty <div class=\"item\"></div>\n- Do NOT nest a <div class=\"item\"> inside another <div class=\"item\">\n- Each experience/project/education entry = exactly ONE <div class=\"item\">\n  containing: one bold title line, then one <ul> with the bullets — nothing else\n- Use <br> ONLY inside personal_info to separate Email/Phone/LinkedIn/GitHub\n  lines, and nowhere else\n- The output HTML per section should be as short and flat as possible — fewer\n  tags = fewer chances of unwanted spacing in the rendered PDF\n\n===========================================================\nFONT, ALIGNMENT & ATS-FRIENDLY DESIGN RULES\n===========================================================\n- Use a clean, ATS-safe sans-serif font family: Calibri, Arial, or Helvetica only\n  (do not suggest decorative, script, or multi-column layouts)\n- All content must be left-aligned (no centered body text, no tables, no text boxes,\n  no images, no icons, no columns) — ATS parsers fail on these\n- Use standard section headings only (About Me, Education, Skills, Experience,\n  Projects, Achievements) so ATS can map them correctly\n- Maintain consistent spacing: one blank line between sections, no extra <br><br>\n  stacking, no nested lists\n- Bold text (<span class=\"bold\">) should be used ONLY for role titles, company\n  names, degree names, and section-critical labels — not entire sentences\n- Dates should be right-aligned or clearly separated with a dash (e.g.,\n  \"Jan 2023 – Present\") for easy ATS date parsing\n- Avoid special characters, emojis, or symbols other than standard bullets (•) and dashes (–)\n\n===========================================================\nOUTPUT RULES\n===========================================================\nYou MUST return a STRICT JSON object with the following structure:\n{\n  \"personal_info\": \"<HTML>\",\n  \"about_me\": \"<HTML>\",\n  \"education\": \"<HTML>\",\n  \"skills\": \"<HTML>\",\n  \"experience\": \"<HTML>\",\n  \"projects\": \"<HTML>\",\n  \"achievements\": \"<HTML>\"\n}\n\nHTML FORMATTING RULES:\n1. Each node MUST contain HTML-ready content only (NO plain text outside tags)\n2. Use ONLY these HTML tags:\n   - <div class=\"item\">\n   - <span class=\"bold\">\n   - <ul>\n   - <li>\n   - <br>\n   - <p>\n3. DO NOT include <html>, <body>, <section>, <table>, <img>, or inline style/font tags\n   (font, size, and color are controlled by the rendering template, not by you)\n4. DO NOT include explanations, markdown, or extra text outside the JSON object\n5. Keep markup minimal and clean — every extra tag increases risk of overflow\n   beyond one page\n\nSECTION-WISE INSTRUCTIONS:\n\n1) personal_info:\n- Extract Name, Email, Phone from resume (mandatory if available)\n- Extract LinkedIn and GitHub ONLY if present in the input\n- DO NOT hallucinate or generate missing links\n- DO NOT include empty fields\n-Format on a SINGLE line separated by \" | \", no <br> tags:\nEmail: x@y.com | Phone: +91-XXXXXXXXXX | LinkedIn: link | GitHub: link\nOmit any field that is missing from the resume.\n- If LinkedIn/GitHub are missing, simply omit those lines entirely\n\n2) about_me:\n- Return inside a single <p> tag\n- Max 3 lines, tightly tailored to the JD\n- No bullet points, no headings\n\n3) education:\n- Use <div class=\"item\"> per entry (max 2 entries)\n- One line per entry: Degree, College, CGPA/%, Dates\n- No extra descriptions or coursework lists\n\n4) skills:\n- Use <ul> with max 5 categorized skill groups\n- Example:\n  <li><span class=\"bold\">Languages:</span> Python, Java, SQL</li>\n- Keep each line to a single row (max 6 items per category)\n\n5) experience:\n- Each role inside <div class=\"item\"> (max 3 roles)\n- Role title + company in <span class=\"bold\">, dates on the same line\n- 3–4 concise bullet points per role using <ul><li>\n- Each bullet: one line, action verb + JD-relevant keyword + quantified impact\n- Add JD-relevant keywords naturally, do not stuff\n\n6) projects:\n- Same format as experience (max 2–3 projects)\n- 2–3 bullet points per project, focused on technical depth and JD relevance\n\n7) achievements:\n- Use <ul><li>, max 3–4 items\n- One line each, concise and impactful, quantify where possible\n\nThe original resume fits on one page. The rewritten resume must NOT be longer than\nthe original. When adding JD keywords, REPLACE weaker words inside existing bullets\ninstead of adding new bullets or lines. If space is tight, drop the least JD-relevant\nproject or achievement entirely.\n\nINPUT:\nResume:\n{{ $json.content.parts[0].text }}\n\nJob Description:\n{{ $('Webhook').item.json.body.job_description }}\n```",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        432,
+        -32
+      ],
+      "id": "8ae52bd0-4a28-4191-a5c9-d998e069c178",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"about_me\": \"\",\n  \"education\": \"\",\n  \"skills\": \"\",\n  \"experience\": \"\",\n  \"projects\": \"\",\n  \"achievements\": \"array\",\n  \"personal info\":\"\"\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        192
+      ],
+      "id": "2d75615e-994b-4534-af07-fe234111810a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Resume - Venkatesh Kulkarni</title>\n  <style>\n  @page { size: A4; margin: 12mm 14mm; }\n\n  body {\n    font-family: Calibri, Arial, sans-serif;\n    font-size: 10.5pt;\n    line-height: 1.25;\n    margin: 0;\n    color: #222;\n  }\n  h1 { font-size: 18pt; margin: 0 0 2px; }\n  h2 {\n    font-size: 11pt;\n    text-transform: uppercase;\n    border-bottom: 1px solid #000;\n    padding-bottom: 1px;\n    margin: 8px 0 4px;\n  }\n  .header { margin-bottom: 2px; }\n  .contact { font-size: 9.5pt; }\n  .section { margin: 0; }\n  .item { margin-bottom: 4px; }\n  .bold { font-weight: bold; }\n  p { margin: 0; }\n  ul { margin: 2px 0 0 18px; padding: 0; }\n  li { margin: 0; padding: 0; }\n</style>\n</head>\n<body>\n\n  <!-- HEADER -->\n  <div class=\"header\">\n    <h1>Venkatesh Kulkarni</h1>\n    <div class=\"contact\">\n      {{ $json.output['personal info'] }}\n    </div>\n  </div>\n\n  <!-- ABOUT ME -->\n  <div class=\"section\">\n    <h2>About Me</h2>\n      {{ $json.output.about_me }}\n  </div>\n\n  <!-- EDUCATION -->\n  <div class=\"section\">\n    <h2>Education</h2>\n   {{ $json.output.education }}\n  </div>\n\n  <!-- SKILLS -->\n  <div class=\"section\">\n    <h2>Skills</h2>\n    {{ $json.output.skills }}\n  </div>\n\n  <!-- EXPERIENCE -->\n  <div class=\"section\">\n    <h2>Experience</h2>\n    {{ $json.output.experience }}\n\n  </div>\n\n  <!-- PROJECTS -->\n  <div class=\"section\">\n    <h2>Projects</h2>\n{{ $json.output.projects }}\n\n  </div>\n\n  <!-- ACHIEVEMENTS -->\n  <div class=\"section\">\n    <h2>Achievements</h2>\n  {{ $json.output.achievements }} \n  </div>\n\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        784,
+        -32
+      ],
+      "id": "e07c76d8-395b-4312-a6b1-4198a4762acb",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "=You are given a resume file.\n\nExtract its content and convert it into structured JSON.\n\nExtract:\n- name\n- email\n- phone\n- skills (array)\n- experience (array of objects with role, company, duration, achievements)\n- education (array)\n- projects (array)\n- certifications (array)\n\nRules:\n- Return ONLY valid JSON\n- Do not add explanations\n- If something is missing, return null",
+        "inputType": "binary",
+        "binaryPropertyName": "file",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        -32
+      ],
+      "id": "c7c00739-5d68-4634-9bbc-1748646d5ea7",
+      "name": "Analyze document1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "4LFYtQmAIjjR3X2g",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "html_content": "={{ $json.html }}",
+        "css_content": "@page {   size: A4;   margin: 20mm; }  * {   box-sizing: border-box; }  body {   font-family: Arial, Helvetica, sans-serif;   color: #333;   line-height: 1.5;   margin: 0;   padding: 0;   background: #fff;   font-size: 14px; }  /* MAIN CONTAINER */ .resume-container {   width: 100%;   max-width: 800px;   margin: 0 auto; }  /* HEADER */ .header {   margin-bottom: 24px;   padding-bottom: 16px;   border-bottom: 2px solid #000; }  .header h1 {   margin: 0 0 10px 0;   font-size: 30px;   font-weight: 700;   color: #111;   letter-spacing: 0.5px; }  .contact {   font-size: 13px;   line-height: 1.7;   color: #555;   word-break: break-word; }  /* SECTION */ .section {   margin-bottom: 24px;   page-break-inside: avoid; }  .section h2 {   font-size: 18px;   font-weight: 700;   color: #111;   border-bottom: 2px solid #000;   padding-bottom: 6px;   margin-bottom: 14px;   margin-top: 0;   text-transform: uppercase;   letter-spacing: 0.5px; }  /* ITEM BLOCK */ .item {   margin-bottom: 16px; }  .item:last-child {   margin-bottom: 0; }  /* BOLD TEXT */ .bold {   font-weight: 700;   color: #111;   font-size: 15px; }  /* PARAGRAPH */ p {   margin: 0;   text-align: justify; }  /* LIST */ ul {   margin: 8px 0 0 20px;   padding: 0; }  li {   margin-bottom: 6px;   padding-left: 2px; }  /* LINKS */ a {   color: #000;   text-decoration: none; }  a:hover {   text-decoration: underline; }  /* EXPERIENCE / PROJECT TITLE SPACING */ .item .bold + br {   line-height: 2; }  /* PRINT OPTIMIZATION */ @media print {   body {     -webkit-print-color-adjust: exact;     print-color-adjust: exact;   }    .section {     page-break-inside: avoid;   }    .item {     page-break-inside: avoid;   }    ul,   li {     page-break-inside: avoid;   } }  /* RESPONSIVE */ @media screen and (max-width: 768px) {   body {     padding: 20px;     font-size: 13px;   }    .header h1 {     font-size: 24px;   }    .section h2 {     font-size: 16px;   }    .bold {     font-size: 14px;   } }",
+        "output_filename": "output_file"
+      },
+      "type": "n8n-nodes-htmlcsstopdf.htmlcsstopdf",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        -32
+      ],
+      "id": "bf70c599-9672-4215-a0d4-dd911e35cedd",
+      "name": "Convert HTML to PDF",
+      "alwaysOutputData": true,
+      "credentials": {
+        "htmlcsstopdfApi": {
+          "id": "EgdW0kCrfUh4Vjc9",
+          "name": "HTML to PDF account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        432,
+        192
+      ],
+      "id": "5ba8cf3d-3ef0-4252-b8d8-bd7e44cd9ec1",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "4LFYtQmAIjjR3X2g",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        608,
+        400
+      ],
+      "id": "ea526c5a-5db7-4939-8b61-21d71c241cad",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "4LFYtQmAIjjR3X2g",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Analyze document1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Convert HTML to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze document1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert HTML to PDF": {
+      "main": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "versionId": "ccff0b95-bf10-4b2e-bbac-752ca4305dcd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a190dd4b9235354c5c052a74445ca2fea46676eb4f5dd0cdc76d39f11386d9cb"
+  },
+  "id": "aP7u2zG2bAJybOZV",
+  "tags": []
+}

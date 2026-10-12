@@ -69,3 +69,6 @@ The resulting PDF is the final document produced by the workflow, ready for use 
 
 ## Workflow Goal
 The goal of this workflow is to reduce the manual effort involved in tailoring resumes for different job opportunities. By combining document extraction, AI-driven optimization, structured output, and automated PDF generation, Resume Analyzer provides a streamlined way to create resumes better aligned with specific job requirements.
+
+
+<img width="1882" height="623" alt="Screenshot 2026-10-12 112319" src="https://github.com/user-attachments/assets/2381d672-e47e-44c7-bf64-e6be9344609c" />
